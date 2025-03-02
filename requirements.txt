@@ -1,0 +1,7 @@
+pynput
+configparser
+smtplib
+time
+threading
+os
+socket
