@@ -220,5 +220,5 @@ $RECYCLE.BIN/
 
 # Contextual files
 log.txt
-
+*.log
 # End of https://www.toptal.com/developers/gitignore/api/python,visualstudiocode,windows
