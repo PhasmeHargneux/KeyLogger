@@ -23,7 +23,7 @@ This is a **lightweight keylogger** that logs keystrokes and sends them via emai
 
 ### 1️⃣ Clone the Repository
 ```bash
-git clone https://github.com/yourusername/KeyLogger.git
+git clone https://github.com/PhasmeHargneux/KeyLogger.git
 cd KeyLogger
 ```
 
